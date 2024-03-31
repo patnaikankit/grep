@@ -10,4 +10,4 @@ go run main.go [text] [file]
 
 ## Results
 
-![Screenshot](Screenshot.png)
+![Result](result.png)
