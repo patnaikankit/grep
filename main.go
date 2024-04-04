@@ -13,23 +13,27 @@ import (
 
 const format = `FORMAT: go run main.go [pattern] [file]`
 
-func readFile(filePath string, callback func([]byte)) ([]string, error) {
-	path, err := os.Open(filePath)
-
+func readFile(filePath string, callback func(int, []byte)) error {
+	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return err
 	}
 
-	defer path.Close()
+	defer file.Close()
 
-	scanner := bufio.NewScanner(path)
-
+	scanner := bufio.NewScanner(file)
+	lineNumber := 1
 	for scanner.Scan() {
-		callback(scanner.Bytes())
+		callback(lineNumber, scanner.Bytes())
+		lineNumber++
 	}
 
-	return nil, nil
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
 }
 
 func getIntervals(positions [][]int) []int {
@@ -73,13 +77,13 @@ func applyColour(line []byte, intervals []int) string {
 func main() {
 	args := os.Args[1:]
 	if len(args) < 2 {
-		fmt.Println("Missing arguements, pattern string and target file both are required!")
+		fmt.Println("Missing arguments, both pattern string and target file are required!")
 		fmt.Println(format)
 		os.Exit(0)
 	}
 
 	if len(args) > 2 {
-		fmt.Println("Only two arguements are required!")
+		fmt.Println("Only two arguments are required!")
 		fmt.Println(format)
 		os.Exit(0)
 	}
@@ -94,18 +98,18 @@ func main() {
 
 	expression := regexp.MustCompile(pattern)
 
-	_, readLineErr := readFile(filePath, func(line []byte) {
+	err := readFile(filePath, func(lineNumber int, line []byte) {
 		positions := expression.FindAllIndex(line, -1)
-		occurences := len(positions)
-		if occurences > 0 {
+		occurrences := len(positions)
+		if occurrences > 0 {
 			intervals := getIntervals(positions)
-			highLigtedLine := applyColour(line, intervals)
-			fmt.Println(highLigtedLine)
+			highlightedLine := applyColour(line, intervals)
+			fmt.Printf("%d: %s\n", lineNumber, highlightedLine)
 		}
 	})
 
-	if readLineErr != nil {
-		log.Fatal(readLineErr)
+	if err != nil {
+		log.Fatal(err)
 		fmt.Println("Error in reading file!")
 		os.Exit(0)
 	}
